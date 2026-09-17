@@ -134,8 +134,9 @@ function asDecision(value: unknown): DecisionCode {
 function makeAdapter(params: {
   client: GenLayerClient<any>;
   contractAddress: string;
+  account?: string;
 }): ChainCallAdapter {
-  const { client, contractAddress } = params;
+  const { client, contractAddress, account } = params;
   const address = contractAddress as `0x${string}`;
 
   async function readContract<T>(
@@ -156,6 +157,7 @@ function makeAdapter(params: {
       functionName,
       args,
       value,
+      ...(account ? { account: account as any } : {}),
     });
     return String(txHash);
   }
@@ -269,15 +271,18 @@ export function createWalletAdapter(options: {
   endpoint: string;
   contractAddress: string;
   provider: Eip1193Provider;
+  account?: string;
 }): ChainCallAdapter {
   const client = createClient({
     chain: pickChain(options.endpoint),
     endpoint: options.endpoint,
     provider: options.provider,
+    ...(options.account ? { account: options.account as any } : {}),
   } as any);
   return makeAdapter({
     client,
     contractAddress: options.contractAddress,
+    account: options.account,
   });
 }
 

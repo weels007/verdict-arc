@@ -258,6 +258,7 @@ function rebuildAdapter(root?: ParentNode): void {
       endpoint,
       contractAddress,
       provider: state.wallet.provider as Eip1193Provider,
+      account: state.wallet.address,
     });
     log(root, "info", `Adapter ready → ${endpoint} · ${shortenAddress(contractAddress)}`);
   } catch (error) {
