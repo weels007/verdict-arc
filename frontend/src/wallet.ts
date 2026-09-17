@@ -45,6 +45,10 @@ export function hasWallet(): boolean {
   return detectWallets().length > 0;
 }
 
+function isValidAddress(value: string): boolean {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
 export async function connectWallet(provider: Eip1193Provider): Promise<WalletInfo> {
   const accounts = (await provider.request({
     method: "eth_requestAccounts",
@@ -53,10 +57,14 @@ export async function connectWallet(provider: Eip1193Provider): Promise<WalletIn
   if (!Array.isArray(accounts) || accounts.length === 0) {
     throw new Error("Wallet returned no accounts");
   }
+  const address = accounts[0];
+  if (!isValidAddress(address)) {
+    throw new Error("Wallet returned an invalid address");
+  }
 
   return {
     provider,
-    address: accounts[0] as string,
+    address: address as `0x${string}`,
     walletName: detectWalletName(provider),
   };
 }
@@ -71,7 +79,10 @@ function detectWalletName(provider: Eip1193Provider): string {
 export async function getConnectedAddress(provider: Eip1193Provider): Promise<string | null> {
   try {
     const accounts = (await provider.request({ method: "eth_accounts" })) as string[];
-    return Array.isArray(accounts) && accounts.length > 0 ? (accounts[0] as string) : null;
+    if (Array.isArray(accounts) && accounts.length > 0 && isValidAddress(accounts[0])) {
+      return accounts[0] as `0x${string}`;
+    }
+    return null;
   } catch {
     return null;
   }

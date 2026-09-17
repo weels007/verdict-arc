@@ -179,8 +179,8 @@ function bindWalletEvents(root: ParentNode): void {
   state.walletListenerBound = true;
   const handleAccounts = (...args: unknown[]): void => {
     const accounts = args[0] as string[] | undefined;
-    const next = Array.isArray(accounts) && accounts.length > 0 ? String(accounts[0]) : null;
-    if (!next) {
+    const next = Array.isArray(accounts) && accounts.length > 0 ? accounts[0] : null;
+    if (!next || !/^0x[a-fA-F0-9]{40}$/.test(next)) {
       state.wallet = null;
       state.adapter = null;
       setConnState("idle", "Wallet not connected");
