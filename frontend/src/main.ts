@@ -99,7 +99,29 @@ function setConnState(stateName: "idle" | "ok" | "err", label: string): void {
 // Wallet
 // ---------------------------------------------------------------------------
 
+function updateConnectButton(): void {
+  const btn = document.getElementById("connect-btn");
+  if (!btn) return;
+  if (state.wallet) {
+    btn.textContent = `Disconnect · ${shortenAddress(state.wallet.address)}`;
+  } else {
+    btn.textContent = "Connect Wallet";
+  }
+}
+
 async function onConnect(root?: ParentNode): Promise<void> {
+  if (state.wallet) {
+    state.wallet = null;
+    state.adapter = null;
+    setConnState("idle", "Wallet not connected");
+    updateConnectButton();
+    if (root) {
+      log(root, "info", "Wallet disconnected.");
+      renderNetworkStatus(root);
+    }
+    return;
+  }
+
   if (!hasWallet()) {
     setConnState("err", "No wallet found");
     if (root) log(root, "err", "No injected wallet detected. Install MetaMask or Rabby.");
@@ -113,6 +135,7 @@ async function onConnect(root?: ParentNode): Promise<void> {
     state.wallet = info;
     state.walletListenerBound = false;
     setConnState("ok", `${info.walletName} · ${shortenAddress(info.address)}`);
+    updateConnectButton();
     if (root) {
       log(root, "ok", `Connected: ${info.walletName} ${info.address}`);
       prefillFromWallet(root);
@@ -140,6 +163,7 @@ function bindWalletEvents(root: ParentNode): void {
       state.wallet = null;
       state.adapter = null;
       setConnState("idle", "Wallet not connected");
+      updateConnectButton();
       if (root) log(root, "warn", "Wallet disconnected.");
       return;
     }
@@ -653,6 +677,7 @@ function renderDashboard(root: HTMLElement): void {
       prefillFromWallet(root);
       refreshNetworkStatus(root);
       bindWalletEvents(root);
+      updateConnectButton();
     } else {
       void restoreWalletIfApproved(root);
     }
@@ -667,6 +692,7 @@ function renderDashboard(root: HTMLElement): void {
     prefillFromWallet(root);
     refreshNetworkStatus(root);
     bindWalletEvents(root);
+    updateConnectButton();
   }
   state.dashboardBooted = true;
 
@@ -758,6 +784,7 @@ async function restoreWalletIfApproved(root: ParentNode): Promise<void> {
   state.wallet = info;
   state.walletListenerBound = false;
   setConnState("ok", `${info.walletName} · ${shortenAddress(info.address)}`);
+  updateConnectButton();
   log(root, "ok", `Reconnected: ${info.walletName} ${info.address}`);
   rebuildAdapter(root);
   prefillFromWallet(root);
@@ -813,6 +840,7 @@ async function boot(): Promise<void> {
           state.wallet = info;
           state.walletListenerBound = false;
           setConnState("ok", `${info.walletName} · ${shortenAddress(info.address)}`);
+          updateConnectButton();
           const view = document.getElementById("view");
           // Only touch the dashboard — landing/how/features have no adapter fields.
           if (view?.querySelector("#endpoint") && view.querySelector("#contract")) {
