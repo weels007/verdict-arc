@@ -95,6 +95,26 @@ function setConnState(stateName: "idle" | "ok" | "err", label: string): void {
   if (labelEl) labelEl.textContent = label;
 }
 
+let notifyTimeout: number | null = null;
+
+function notify(root: ParentNode, message: string, kind: "err" | "warn" = "err"): void {
+  let box = root.querySelector("#notify") as HTMLDivElement | null;
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "notify";
+    const panel = root.querySelector(".panel");
+    if (panel) panel.insertBefore(box, panel.firstChild);
+  }
+  box.textContent = "";
+  box.className = `notify notify-${kind}`;
+  const t = document.createElement("span");
+  t.textContent = message;
+  box.appendChild(t);
+  box.hidden = false;
+  if (notifyTimeout) window.clearTimeout(notifyTimeout);
+  notifyTimeout = window.setTimeout(() => { box.hidden = true; }, 5000);
+}
+
 // ---------------------------------------------------------------------------
 // Wallet
 // ---------------------------------------------------------------------------
@@ -138,6 +158,7 @@ async function onConnect(root?: ParentNode): Promise<void> {
     updateConnectButton();
     if (root) {
       log(root, "ok", `Connected: ${info.walletName} ${info.address}`);
+      notify(root, `Wallet connected: ${info.walletName} ${shortenAddress(info.address)}`, "ok");
       prefillFromWallet(root);
       rebuildAdapter(root);
       refreshNetworkStatus(root);
@@ -266,6 +287,7 @@ async function onCreateCase(root: ParentNode): Promise<void> {
     adapter = requireAdapter(root);
   } catch (error) {
     log(root, "err", error instanceof Error ? error.message : String(error));
+    notify(root, error instanceof Error ? error.message : String(error), "err");
     return;
   }
   const caseId = inputWithin(root, "case-id").value.trim();
@@ -493,6 +515,7 @@ async function onAction(root: ParentNode, name: string): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     log(root, "err", `${name} failed: ${message}`);
+    notify(root, `${name} failed: ${message}`, "err");
   } finally {
     setBusy(root, null);
   }
@@ -702,6 +725,9 @@ function renderDashboard(root: HTMLElement): void {
     log(root, "info", `Network ready → ${state.config.endpoint}`);
   }
   log(root, "info", "Connect a wallet to sign real transactions.");
+  if (!state.wallet) {
+    notify(root, "Connect your wallet to use the dashboard", "warn");
+  }
   void restoreWalletIfApproved(root);
 }
 

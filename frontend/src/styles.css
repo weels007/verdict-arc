@@ -740,6 +740,30 @@ label { font-size: 12px; color: var(--muted); letter-spacing: 0.3px; }
   padding: 12px 14px;
   background: #0a0f1c;
 }
+.notify {
+  padding: 12px 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  animation: rise 380ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.notify[data-hidden="true"], .notify[hidden] { display: none; }
+.notify.err {
+  background: #f0566a20;
+  border: 1px solid #f0566a66;
+  color: #f0566a;
+}
+.notify.warn {
+  background: #c9a86a20;
+  border: 1px solid #c9a86a66;
+  color: #c9a86a;
+}
+.notify.ok {
+  background: #3fd68f20;
+  border: 1px solid #3fd68f66;
+  color: #3fd68f;
+}
 .log .line { display: flex; gap: 10px; }
 .log .t { color: var(--faint); flex-shrink: 0; }
 .log .ok { color: var(--green); }
