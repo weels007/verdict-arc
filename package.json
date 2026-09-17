@@ -1,0 +1,29 @@
+{
+  "name": "verdictarc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "tsx src/demo.ts",
+    "demo:real": "tsx src/demo-real.ts",
+    "deploy": "tsx scripts/deploy.ts",
+    "smoke": "tsx smoke.test.ts",
+    "smoke:availability": "tsx smoke-availability.test.ts",
+    "check": "tsx src/run-summary.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run smoke && npm run smoke:availability && npm run smoke:real && npm run check && npm run typecheck",
+    "smoke:real": "tsx smoke-real.test.ts",
+    "dev": "vite frontend",
+    "build": "vite build frontend",
+    "preview": "vite preview frontend"
+  },
+  "devDependencies": {
+    "@types/node": "^26.5.1",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "genlayer-js": "^1.1.8"
+  }
+}
