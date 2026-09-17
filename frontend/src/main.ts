@@ -728,6 +728,9 @@ function renderDashboard(root: HTMLElement): void {
   if (!state.wallet) {
     notify(root, "Connect your wallet to use the dashboard", "warn");
   }
+  if (!state.config.endpoint || !state.config.contractAddress) {
+    notify(root, "Network not configured — use Advanced override or rebuild with VITE_ env vars", "err");
+  }
   void restoreWalletIfApproved(root);
 }
 
