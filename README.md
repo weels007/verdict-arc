@@ -78,21 +78,23 @@ The repo ships with `vercel.json` (SPA rewrites, `frontend/dist` output).
 
 1. Push the repo to GitHub and import it in Vercel (framework preset: Vite —
    detected automatically).
-2. Before the first deploy, run the contract deployment once:
-
-   ```bash
-   GENLAYER_ENDPOINT=<testnet rpc> GENLAYER_PRIVATE_KEY=0x… npm run deploy
-   ```
-
-3. In Vercel → Settings → Environment Variables, add:
+2. In Vercel → Settings → Environment Variables, add **both** of these as
+   **Project Environment Variables** (not preview-only):
 
    | Variable | Value |
    | --- | --- |
-   | `VITE_GENLAYER_ENDPOINT` | public GenLayer testnet RPC URL |
-   | `VITE_GENLAYER_CONTRACT` | address printed by the deploy step |
+   | `VITE_GENLAYER_ENDPOINT` | `https://studio-dev.genlayer.com/api` |
+   | `VITE_GENLAYER_CONTRACT` | `0x064826b5d19E13a61fcA5e22e344A5d67FC17853` |
 
-4. Redeploy. The built app has the network baked in — visitors land on a
+   These are **build-time** variables — Vite bakes them into the bundle.
+   They must be set **before** the first build, not after.
+
+3. Redeploy. The built app has the network baked in — visitors land on a
    fully configured dashboard: connect wallet and go. No localhost anywhere.
+
+> **Network:** VerdictArc targets **Studio-next preview** (studio-dev,
+> chain 61997) by default. The Studio URL is publicly reachable from
+> visitors' browsers, so no VPN or local tunnel is needed.
 
 ## Quickstart
 
