@@ -4,9 +4,7 @@
 // (VITE_GENLAYER_ENDPOINT / VITE_GENLAYER_CONTRACT). On Vercel these are set
 // as Project Environment Variables — no localhost anywhere in production.
 //
-// Users can still override endpoint/contract per session via the Advanced
-// field in the dashboard (useful for local development against a simulator);
-// overrides never affect other visitors.
+// Network and contract are fixed at deploy time. No runtime overrides.
 
 export interface AppConfig {
   endpoint: string;

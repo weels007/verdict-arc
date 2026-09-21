@@ -30,8 +30,6 @@ interface AppState {
   adapter: ChainCallAdapter | null;
   caseId: string | null;
   dashboardBooted: boolean;
-  sessionEndpoint: string | null;
-  sessionContract: string | null;
   walletListenerBound: boolean;
 }
 
@@ -41,8 +39,6 @@ const state: AppState = {
   adapter: null,
   caseId: null,
   dashboardBooted: false,
-  sessionEndpoint: null,
-  sessionContract: null,
   walletListenerBound: false,
 };
 
@@ -245,7 +241,7 @@ function rebuildAdapter(root?: ParentNode): void {
   const { endpoint, contractAddress } = readSessionConfig(root);
 
   if (!endpoint || !contractAddress) {
-    log(root, "warn", "No network set. Configure VITE_ env at deploy time or use Advanced override.");
+    log(root, "warn", "No network set. Configure VITE_GENLAYER_ENDPOINT / VITE_GENLAYER_CONTRACT at deploy time.");
     return;
   }
   if (!state.wallet) {
@@ -539,21 +535,7 @@ function renderDashboard(root: HTMLElement): void {
           <div class="kv"><span>Wallet</span><b class="mono" id="net-wallet">not connected</b></div>
         </div>
 
-        <details class="advanced" id="advanced">
-          <summary>Advanced — override network for this session</summary>
-          <div class="field-row">
-            <label for="endpoint">GenLayer endpoint</label>
-            <input id="endpoint" type="text" spellcheck="false" placeholder="https://… (testnet RPC)" />
-          </div>
-          <div class="field-row">
-            <label for="contract">Contract address</label>
-            <input id="contract" type="text" spellcheck="false" placeholder="0x…" class="mono" />
-          </div>
-          <p class="advanced-note">
-            Overrides apply only to your browser. The deployment's baked-in
-            network is used otherwise.
-          </p>
-        </details>
+
 
         <h2 class="panel-sub"><span class="step-num">2</span> Open a case</h2>
 
@@ -692,7 +674,7 @@ function renderDashboard(root: HTMLElement): void {
 
   if (state.dashboardBooted) {
     // Re-visiting the route: DOM was rebuilt, so rebind and restore the
-    // session (including any Advanced override), then refresh status.
+    // network, then refresh status.
     bindDashboard(root);
     fillDashboardDefaults(root);
     renderNetworkStatus(root);
@@ -721,7 +703,7 @@ function renderDashboard(root: HTMLElement): void {
   state.dashboardBooted = true;
 
   if (!isConfigured()) {
-    log(root, "warn", "No network baked into this build. Set VITE_GENLAYER_ENDPOINT / VITE_GENLAYER_CONTRACT at deploy time, or use Advanced override.");
+    log(root, "warn", "No network baked into this build. Set VITE_GENLAYER_ENDPOINT / VITE_GENLAYER_CONTRACT at deploy time.");
   } else {
     log(root, "info", `Network ready → ${state.config.endpoint}`);
   }
@@ -730,7 +712,7 @@ function renderDashboard(root: HTMLElement): void {
     notify(root, "Connect your wallet to use the dashboard", "warn");
   }
   if (!state.config.endpoint || !state.config.contractAddress) {
-    notify(root, "Network not configured — use Advanced override or rebuild with VITE_ env vars", "err");
+    notify(root, "Network not configured — rebuild with VITE_GENLAYER_ENDPOINT / VITE_GENLAYER_CONTRACT", "err");
   }
   void restoreWalletIfApproved(root);
 }
@@ -740,11 +722,8 @@ function fillDashboardDefaults(root: ParentNode): void {
     const el = root.querySelector<HTMLInputElement>(`#${id}`);
     if (el && !el.value) el.value = value;
   };
-  // Session override (Advanced) survives route changes; otherwise use the
-  // baked-in network (build-time env). No localhost fallback: an unconfigured
+  // Use the baked-in network (build-time env). No localhost fallback: an unconfigured
   // build leaves the fields empty and says so in the Network panel.
-  set("endpoint", state.sessionEndpoint ?? state.config.endpoint);
-  set("contract", state.sessionContract ?? state.config.contractAddress);
   set("win-start", String(DEFAULTS.windowStart));
   set("win-end", String(DEFAULTS.windowEnd));
   set("sla-amount", DEFAULTS.slaAmount);
@@ -760,8 +739,8 @@ function networkName(endpoint: string): string {
 }
 
 function renderNetworkStatus(root: ParentNode): void {
-  const endpoint = inputWithin(root, "endpoint").value.trim();
-  const contract = inputWithin(root, "contract").value.trim();
+  const endpoint = state.config.endpoint;
+  const contract = state.config.contractAddress;
   const setText = (id: string, value: string): void => {
     const el = root.querySelector(`#${id}`);
     if (el) el.textContent = value;
