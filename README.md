@@ -1,19 +1,200 @@
-# VerdictArc
+<div align="center">
 
-**Onchain court for agentic commerce** — a GenLayer Intelligent Contract that settles SLA disputes using evidence fetched and judged entirely on-chain.
+# ⚖️ VerdictArc
+
+**Onchain court for agentic commerce**
+
+*Evidence fetched by the contract itself. Judged under validator consensus.*
+
+[![GenLayer](https://img.shields.io/badge/Built%20on-GenLayer-6C47FF?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xMiAyMnM4LTQgOC0xMFY1bC04LTMtOCAzdjdjMCA2IDggMTAgOCAxMHoiLz48L3N2Zz4=)](https://genlayer.com)
+[![Studionet](https://img.shields.io/badge/Network-Studionet%2061999-00D4AA?style=flat-square)](https://docs.genlayer.com)
+[![Python](https://img.shields.io/badge/Contract-Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://docs.genlayer.com)
+[![TypeScript](https://img.shields.io/badge/Frontend-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+
+---
+
+</div>
+
+## 🎯 What is VerdictArc?
+
+VerdictArc is an **Intelligent Contract** on [GenLayer](https://genlayer.com) that settles SLA disputes automatically. It holds payment in escrow, fetches evidence from the provider's published URL, extracts the SLA result using an LLM under validator consensus, and decides — **release, refund, or dispute**.
+
+> *"The contract itself fetches the evidence. No mock data path exists."*
 
 ```
-provider delivers  →  publishes evidence (HTTPS)  →  submit_evidence(url)
-                                                             │
-                          validators fetch the URL + extract SLA result
-                          (gl.nondet.web.render + LLM consensus)
-                                                             │
-                          Satisfied → release    breach → dispute → refund
+┌─────────────────────────────────────────────────────────────────┐
+│                      VERDICTARC FLOW                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Consumer ──── create_case ──── lock_escrow ────┐               │
+│                                                 │               │
+│                                    ┌────────────┘               │
+│                                    ▼                            │
+│                         ┌──────────────────┐                    │
+│                         │   ESCROW LOCKED  │                    │
+│                         └──────────────────┘                    │
+│                                    │                            │
+│  Provider ──── start_execution ────┤                            │
+│                                    │                            │
+│  Provider ──── submit_evidence ────┘                            │
+│                         │                                       │
+│                         ▼                                       │
+│              ┌──────────────────────┐                           │
+│              │  VALIDATOR CONSENSUS │                           │
+│              │  • Fetch evidence    │                           │
+│              │  • LLM extraction    │                           │
+│              │  • Independent rerun │                           │
+│              └──────────────────────┘                           │
+│                    │           │                                │
+│                    ▼           ▼                                │
+│             ┌──────────┐  ┌──────────┐                          │
+│             │ RELEASE  │  │ DISPUTE  │                          │
+│             └──────────┘  └──────────┘                          │
+│                                    │                            │
+│                         ┌──────────┴──────────┐                 │
+│                         ▼                     ▼                 │
+│                  ┌──────────┐          ┌──────────┐             │
+│                  │  REFUND  │          │COUNTER-EV│             │
+│                  └──────────┘          └──────────┘             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## How It Works
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🏛️ **Onchain Justice** | Disputes settled by evidence the contract itself fetches under consensus |
+| 🔍 **Evidence-First** | Decision comes from evidence content, never from submitter claims |
+| 🎲 **LLM Consensus** | Validators independently verify evidence using LLM extraction |
+| 🤝 **Same Rules for Everyone** | Identical predicate on original and counter-evidence |
+| 📊 **Fully Auditable** | Evidence URL, extracted result, and decision all recorded onchain |
+| ⚖️ **Bounded Disputes** | One counter-evidence round, preventing endless litigation |
+| 🔐 **Wallet-Signed** | All writes require wallet signature, no backdoors |
+
+---
+
+## 🏗️ Architecture
+
+### Smart Contract (Python)
+
+```python
+# contracts/verdict_arc.py
+from genlayer import *
+
+class VerdictArc(gl.Contract):
+    """
+    Onchain court for agentic commerce.
+    Evidence fetched by the contract itself, judged under validator consensus.
+    """
+    
+    def create_case(self, case_id, provider, consumer, ...):
+        """Consumer opens a case and defines SLA terms."""
+        
+    def lock_escrow(self, case_id):
+        """Lock payment as transaction value. Funds held by contract."""
+        
+    def submit_evidence(self, case_id, evidence_url):
+        """Provider publishes evidence at public URL."""
+        
+    def evaluate_evidence(self, case_id):
+        """Contract fetches URL, LLM extracts result, consensus decides."""
+```
+
+### Frontend (TypeScript + Vite)
+
+```
+frontend/
+├── src/
+│   ├── pages/
+│   │   ├── landing.ts      # Hero, flow, trust pillars
+│   │   ├── how.ts          # Timeline, consensus explainer
+│   │   ├── features.ts     # Capability cards, comparison
+│   │   └── app.ts          # Wallet-connected dashboard
+│   ├── config.ts           # Build-time config (endpoint, contract)
+│   └── main.ts             # Router, wallet, adapter
+├── dist/                   # Production build
+└── index.html
+```
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) ≥ 18
+- [GenLayer CLI](https://docs.genlayer.com) installed
+- A wallet with GEN tokens on studionet
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/weels007/verdict-arc.git
+cd verdict-arc
+
+# Install dependencies
+npm install
+```
+
+### Development
+
+```bash
+# Start dev server
+npm run dev
+# → http://127.0.0.1:5173
+
+# Run offline tests
+npm test
+```
+
+### Deploy Contract
+
+```bash
+# Set your private key
+export GENLAYER_PRIVATE_KEY=0x...
+
+# Deploy to studionet
+npm run deploy
+
+# Full lifecycle test
+npx tsx scripts/test-all-methods.ts
+```
+
+---
+
+## 🌐 Deployment
+
+### Frontend (Vercel)
+
+1. Push to GitHub
+2. Import in [Vercel](https://vercel.com) (Vite preset auto-detected)
+3. Set environment variables:
+
+```bash
+VITE_GENLAYER_ENDPOINT=https://studio.genlayer.com/api
+VITE_GENLAYER_CONTRACT=0x19EE7bd967CF365a8214Ac01f729C0d037eb1852
+```
+
+4. Deploy — visitors get a fully configured dashboard
+
+### Contract (GenLayer)
+
+```bash
+# Deploy to testnet (persistent)
+GENLAYER_ENDPOINT=https://testnet.genlayer.com/api \
+GENLAYER_PRIVATE_KEY=0x... \
+npm run deploy
+```
+
+---
+
+## 📖 How It Works
+
+### The Flow
 
 | Step | Method | Actor | Description |
 |------|--------|-------|-------------|
@@ -30,97 +211,129 @@ provider delivers  →  publishes evidence (HTTPS)  →  submit_evidence(url)
 - **`task_completion_v1`** — completed tasks ≥ required, timestamps in window, all successful
 - **`availability_v1`** — observation window in case window, `ok/total ≥ threshold permille`
 
+### Validator Consensus
+
+When `evaluate_evidence` is called:
+
+1. **Each validator** independently fetches the evidence URL
+2. **LLM extracts** the SLA result from the evidence content
+3. **Independent re-run** ensures consistency
+4. **Decision-field comparison** determines consensus
+5. **Same rules** apply to both original and counter-evidence
+
 ---
 
-## Deployed Contract
+## 🔧 Configuration
 
-| | |
-|---|---|
-| **Network** | [Studionet](https://docs.genlayer.com/developers/intelligent-contracts/deploying/network-configuration) (chain 61999) |
-| **Address** | `0x19EE7bd967CF365a8214Ac01f729C0d037eb1852` |
-| **RPC** | `https://studio.genlayer.com/api` |
-| **Deployer** | `0x689759bb926E032EAfb1eE986eD7A98C1496ec1c` |
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `GENLAYER_ENDPOINT` | RPC endpoint | `https://studio.genlayer.com/api` |
+| `GENLAYER_PRIVATE_KEY` | Signing account | — |
+| `GENLAYER_CONTRACT` | VerdictArc address | — |
+
+### Build-time Config
+
+The frontend reads from `VITE_GENLAYER_*` env vars at build time:
+
+```typescript
+// frontend/src/config.ts
+export function loadConfig(): AppConfig {
+  return {
+    endpoint: "https://studio.genlayer.com/api",
+    contractAddress: "0x19EE7bd967CF365a8214Ac01f729C0d037eb1852",
+  };
+}
+```
 
 ---
 
-## Project Layout
+## 📁 Project Structure
 
 ```
-contracts/verdict_arc.py      GenLayer intelligent contract (authoritative)
-frontend/                     Browser dashboard (Vite + wallet connect)
-src/real/adapter.ts           genlayer-js adapter (account + wallet modes)
-src/real/evidence.ts          Evidence doc builder + HTTPS publisher
-src/contract.ts               TS rule mirror (offline tests)
-smoke*.test.ts                Rule + evidence checks (npm test)
-scripts/deploy.ts             Deploy to GenLayer
-scripts/test-all-methods.ts   E2E lifecycle test on studionet
+verdict-arc/
+├── contracts/
+│   └── verdict_arc.py          # GenLayer intelligent contract (authoritative)
+├── frontend/
+│   ├── src/
+│   │   ├── pages/              # Route components
+│   │   ├── config.ts           # Build-time configuration
+│   │   ├── main.ts             # App entry, router, wallet
+│   │   └── styles.css          # Global styles
+│   ├── index.html              # SPA shell
+│   └── vite.config.ts          # Vite configuration
+├── src/
+│   ├── real/
+│   │   ├── adapter.ts          # genlayer-js adapter
+│   │   └── evidence.ts         # Evidence builder + publisher
+│   └── contract.ts             # TS rule mirror (offline tests)
+├── scripts/
+│   ├── deploy.ts               # Deploy to GenLayer
+│   └── test-all-methods.ts     # E2E lifecycle test
+├── smoke*.test.ts              # Rule + evidence checks
+└── package.json
 ```
 
 ---
 
-## Quickstart
+## 🧪 Testing
 
 ```bash
-npm install
-
-# Run offline tests
+# Run all tests
 npm test
 
-# Deploy to studionet
-GENLAYER_PRIVATE_KEY=0x... npm run deploy
-
-# Full lifecycle test
-npx tsx scripts/test-all-methods.ts
+# Individual test suites
+npm run smoke              # Rule tests
+npm run smoke:availability # Availability mode tests
+npm run smoke:real         # Real chain tests
+npm run check              # Summary check
+npm run typecheck          # TypeScript validation
 ```
 
-### Environment
+---
 
-| Variable | Purpose |
-|----------|---------|
-| `GENLAYER_ENDPOINT` | RPC endpoint (default: studionet) |
-| `GENLAYER_PRIVATE_KEY` | Signing account private key |
-| `GENLAYER_CONTRACT` | Deployed VerdictArc address |
+## ⚠️ Limitations
+
+| Limitation | Impact |
+|------------|--------|
+| Validators must reach evidence URL | No private endpoints or firewalled servers |
+| `evaluate_evidence` requires LLM consensus | ~30-60s per evaluation |
+| Studionet has temporary persistence | Use testnet for production data |
+| Bounded disputes | One counter-evidence round only |
 
 ---
 
-## Frontend
+## 🗺️ Roadmap
 
-Multi-page SPA (Vite, no framework runtime):
-
-- **Landing** — hero, case flow, trust pillars
-- **How It Works** — timeline, consensus explainer
-- **Features** — capability cards, comparison table
-- **Launch App** — wallet-connected dashboard
-
-```bash
-npm run dev        # http://127.0.0.1:5173
-```
-
-### Deploy to Vercel
-
-1. Push to GitHub, import in Vercel (Vite preset auto-detected)
-2. Set environment variables:
-
-| Variable | Value |
-|----------|-------|
-| `VITE_GENLAYER_ENDPOINT` | `https://studio.genlayer.com/api` |
-| `VITE_GENLAYER_CONTRACT` | `0x19EE7bd967CF365a8214Ac01f729C0d037eb1852` |
-
-3. Redeploy — visitors get a fully configured dashboard.
+- [ ] Multi-round disputes
+- [ ] Cross-chain evidence verification
+- [ ] Reputation system for providers
+- [ ] Automated penalty distribution
+- [ ] Integration with real-world oracles
 
 ---
 
-## Why This Fits
+## 🤝 Contributing
 
-- **Onchain Justice** — disputes settled by evidence the contract itself fetches under consensus
-- **Same Rules for Everyone** — identical predicate on original and counter-evidence
-- **Auditable** — evidence URL, extracted result, and decision all onchain
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
 
 ---
 
-## Limits
+## 📄 License
 
-- Validators must reach the evidence URL (no private endpoints)
-- `evaluate_evidence` requires LLM consensus (slow, ~30-60s)
-- Studionet has **temporary** persistence — use testnetAsimov/testnetBradbury for production
-- Dispute is bounded: one counter-evidence round, same predicate
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with ⚖️ on [GenLayer](https://genlayer.com)**
+
+*Evidence fetched by the contract itself. Judged under validator consensus.*
+
+</div>
