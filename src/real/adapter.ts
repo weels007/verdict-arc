@@ -12,21 +12,11 @@
 // src/contract.ts is only the offline rule mirror used by tests.
 
 import { createClient, createAccount } from "genlayer-js";
+import { parseAccount } from "viem/accounts";
+import type { Account } from "viem/accounts";
 import { localnet, studionet, testnetBradbury } from "genlayer-js/chains";
 import type { GenLayerClient, CalldataEncodable } from "genlayer-js/types";
 import type { DecisionCode } from "../types.js";
-
-// Studio-next preview network (studio-dev.genlayer.com, chain 61997).
-// Mirrors genlayer-js@rc `studioDevnet`: same consensus stack as stable
-// studionet, only id + RPC differ — the stable preset must not be reused.
-const studioDevnet = {
-  ...studionet,
-  id: 61997,
-  name: "GenLayer Studio Devnet",
-  rpcUrls: { default: { http: ["https://studio-dev.genlayer.com/api"] } },
-} as typeof studionet;
-
-export { studioDevnet };
 
 type Calldata = CalldataEncodable[];
 
@@ -96,12 +86,6 @@ export interface Eip1193Provider {
 }
 
 function pickChain(endpoint: string) {
-  // Studio-next preview (studio-dev, chain 61997): same consensus stack as
-  // stable studionet, different chain id + RPC — never reuse the studionet preset.
-  if (endpoint.includes("studio-dev") || endpoint.includes("studio-next")) {
-    return studioDevnet;
-  }
-  // Stable Studio deployment: https://studio.genlayer.com/api -> studionet (61999)
   if (endpoint.includes("studio.genlayer.com")) {
     return studionet;
   }
@@ -134,9 +118,9 @@ function asDecision(value: unknown): DecisionCode {
 function makeAdapter(params: {
   client: GenLayerClient<any>;
   contractAddress: string;
-  account?: string;
+  beforeWrite?: () => Promise<Account | undefined>;
 }): ChainCallAdapter {
-  const { client, contractAddress, account } = params;
+  const { client, contractAddress } = params;
   const address = contractAddress as `0x${string}`;
 
   async function readContract<T>(
@@ -152,12 +136,13 @@ function makeAdapter(params: {
     args: Calldata = [],
     value: bigint = BigInt(0)
   ): Promise<string> {
+    const account = await params.beforeWrite?.();
     const txHash = await client.writeContract({
       address,
       functionName,
       args,
       value,
-      ...(account ? { account: account as any } : {}),
+      ...(account ? { account } : {}),
     });
     return String(txHash);
   }
@@ -273,16 +258,72 @@ export function createWalletAdapter(options: {
   provider: Eip1193Provider;
   account?: string;
 }): ChainCallAdapter {
+  const preset = pickChain(options.endpoint);
+  const chain = {
+    ...preset,
+    rpcUrls: { default: { http: [options.endpoint] } },
+  };
   const client = createClient({
-    chain: pickChain(options.endpoint),
+    chain,
     endpoint: options.endpoint,
     provider: options.provider,
-    ...(options.account ? { account: options.account as any } : {}),
-  } as any);
+    ...(options.account ? { account: options.account as `0x${string}` } : {}),
+  });
+  const chainId = `0x${chain.id.toString(16)}`;
+  const matchesChain = (value: unknown): boolean =>
+    typeof value === "string" && /^0x[0-9a-f]+$/i.test(value) && BigInt(value) === BigInt(chain.id);
+
+  async function ensureWalletChain(): Promise<Account | undefined> {
+    const rpcChainId = await client.request({ method: "eth_chainId" });
+    if (!matchesChain(rpcChainId)) {
+      throw new Error(`RPC responds on chain ${rpcChainId}; expected ${chainId} (${chain.name}). Check the configured endpoint.`);
+    }
+
+    let account: Account | undefined;
+    if (options.account) {
+      account = parseAccount(options.account as `0x${string}`);
+    } else {
+      const accounts = await options.provider.request({ method: "eth_accounts" }) as string[];
+      account = accounts[0] ? parseAccount(accounts[0] as `0x${string}`) : undefined;
+    }
+
+    const walletChainId = await options.provider.request({ method: "eth_chainId" });
+    if (matchesChain(walletChainId)) return account;
+
+    try {
+      await options.provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId }],
+      });
+    } catch (error) {
+      const rpcError = error as { code?: number; data?: { originalError?: { code?: number } } } | null;
+      if (rpcError?.code !== 4902 && rpcError?.data?.originalError?.code !== 4902) throw error;
+      await options.provider.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId,
+          chainName: chain.name,
+          nativeCurrency: chain.nativeCurrency,
+          rpcUrls: [options.endpoint],
+        }],
+      });
+      await options.provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId }],
+      });
+    }
+
+    if (!matchesChain(await options.provider.request({ method: "eth_chainId" }))) {
+      throw new Error(`Switch your wallet to ${chain.name} (chain ${chain.id}) before sending transactions.`);
+    }
+
+    return account;
+  }
+
   return makeAdapter({
     client,
     contractAddress: options.contractAddress,
-    account: options.account,
+    beforeWrite: ensureWalletChain,
   });
 }
 

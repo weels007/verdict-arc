@@ -1,16 +1,15 @@
 # v0.3.0
-# { "Depends": "py-genlayer:5jycge4q8k23462jtb0b9fyey1s9qz928sz2nbrd9mg4sxqg2qng" }
+# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 
 import json
 import re
 import typing
 
-import genlayer as gl
+from genlayer import *
 
 #
 # VerdictArc - onchain court for agentic commerce (GenLayer Intelligent Contract).
-# Runner pinned to the Studio-dev preview (v0.3.0 stack, chain 61997).
-# Stable studionet uses py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6.
+# Runner pinned to stable studionet (v0.3.0 stack, chain 61999).
 #
 # Flow:
 # - Consumer opens a case and locks escrow (value attached to lock_escrow).
@@ -43,6 +42,12 @@ def _fresh_dispute() -> dict:
         "decided": False,
         "decision": "",
     }
+
+
+def _addr_hex(addr: typing.Any) -> str:
+    if hasattr(addr, "as_hex"):
+        return addr.as_hex
+    return str(addr)
 
 
 def _coerce_int(value: typing.Any, field: str) -> int:
@@ -152,11 +157,11 @@ def _handle_leader_error(leaders_res: typing.Any, leader_fn: typing.Any) -> bool
         return False
 
 
-class VerdictArc(gl.contract.Contract):
+class VerdictArc(gl.Contract):
     # case_id -> full case record as canonical JSON.
     # JSON keeps the schema versioned and avoids nested storage classes;
     # amounts are stored as strings to stay exact for u256 values.
-    cases: gl.storage.TreeMap[str, str]
+    cases: TreeMap[str, str]
 
     def __init__(self):
         pass
@@ -220,8 +225,8 @@ class VerdictArc(gl.contract.Contract):
     def create_case(
         self,
         case_id: str,
-        provider: gl.Address,
-        consumer: gl.Address,
+        provider: Address,
+        consumer: Address,
         service_description: str,
         window_start: int,
         window_end: int,
@@ -245,8 +250,8 @@ class VerdictArc(gl.contract.Contract):
         self._put(
             case_id,
             {
-                "provider": provider.as_hex,
-                "consumer": consumer.as_hex,
+                "provider": _addr_hex(provider),
+                "consumer": _addr_hex(consumer),
                 "service_description": service_description,
                 "sla_amount": "0",
                 "fee_amount": "0",
@@ -264,7 +269,7 @@ class VerdictArc(gl.contract.Contract):
         )
 
     @gl.public.write.payable
-    def lock_escrow(self, case_id: str, fee_amount: gl.u256, penalty_amount: gl.u256) -> None:
+    def lock_escrow(self, case_id: str, fee_amount: u256, penalty_amount: u256) -> None:
         c = self._get(case_id)
         if c["status"] != "Offering":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} case must be in Offering to lock escrow")
