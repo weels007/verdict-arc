@@ -28,10 +28,8 @@ export function loadConfig(): AppConfig {
   const envContract = (viteEnv("VITE_GENLAYER_CONTRACT") ?? "").trim();
 
   return {
-    // No localhost fallback: an unconfigured build says so instead of
-    // pretending there is a node on the visitor's machine.
-    endpoint: envEndpoint,
-    contractAddress: envContract,
+    endpoint: envEndpoint || "https://studio.genlayer.com/api",
+    contractAddress: envContract || "0x19EE7bd967CF365a8214Ac01f729C0d037eb1852",
   };
 }
 
