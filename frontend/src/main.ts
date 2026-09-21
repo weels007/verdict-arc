@@ -215,15 +215,10 @@ function prefillFromWallet(root: ParentNode): void {
 // Adapter lifecycle
 // ---------------------------------------------------------------------------
 
-function readSessionConfig(root: ParentNode): { endpoint: string; contractAddress: string } {
-  const endpointEl = root.querySelector<HTMLInputElement>("#endpoint");
-  const contractEl = root.querySelector<HTMLInputElement>("#contract");
-  if (!endpointEl || !contractEl) {
-    throw new Error("Dashboard not rendered yet.");
-  }
+function readSessionConfig(_root: ParentNode): { endpoint: string; contractAddress: string } {
   return {
-    endpoint: endpointEl.value.trim(),
-    contractAddress: contractEl.value.trim(),
+    endpoint: state.config.endpoint,
+    contractAddress: state.config.contractAddress,
   };
 }
 
@@ -760,19 +755,6 @@ function bindDashboard(root: HTMLElement): void {
   $within(root, "create-btn").addEventListener("click", () => void onCreateCase(root));
   $within(root, "load-btn").addEventListener("click", () => void onLoadCase(root));
   root.querySelector("[data-evidence-submit]")?.addEventListener("click", () => void onAction(root, "submit_evidence"));
-  const onNetworkChange = (): void => {
-    try {
-      const { endpoint, contractAddress } = readSessionConfig(root);
-      state.sessionEndpoint = endpoint || null;
-      state.sessionContract = contractAddress || null;
-    } catch {
-      // Dashboard not fully rendered — ignore.
-    }
-    safeRebuildAdapter(root);
-    refreshNetworkStatus(root);
-  };
-  inputWithin(root, "endpoint").addEventListener("change", onNetworkChange);
-  inputWithin(root, "contract").addEventListener("change", onNetworkChange);
 
   root.querySelectorAll<HTMLButtonElement>(".actions .action").forEach((btn) => {
     btn.addEventListener("click", () => void onAction(root, btn.dataset.action ?? ""));
@@ -781,8 +763,8 @@ function bindDashboard(root: HTMLElement): void {
 
 async function restoreWalletIfApproved(root: ParentNode): Promise<void> {
   if (!hasWallet()) return;
-  // Only runs on the dashboard — other routes have no adapter fields.
-  if (!root.querySelector("#endpoint") || !root.querySelector("#contract")) return;
+  // Only runs on the dashboard — other routes have no network status.
+  if (!root.querySelector("#net-status")) return;
   const wallets = detectWallets();
   if (wallets.length === 0) return;
   const address = await getConnectedAddress(wallets[0].provider);
@@ -851,8 +833,8 @@ async function boot(): Promise<void> {
           setConnState("ok", `${info.walletName} · ${shortenAddress(info.address)}`);
           updateConnectButton();
           const view = document.getElementById("view");
-          // Only touch the dashboard — landing/how/features have no adapter fields.
-          if (view?.querySelector("#endpoint") && view.querySelector("#contract")) {
+          // Only touch the dashboard — landing/how/features have no network status.
+          if (view?.querySelector("#net-status")) {
             try {
               rebuildAdapter(view);
               prefillFromWallet(view);
