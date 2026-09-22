@@ -29,6 +29,15 @@ ERROR_TRANSIENT = "[TRANSIENT]"
 ERROR_LLM = "[LLM_ERROR]"
 
 
+@gl.evm.contract_interface
+class _Recipient:
+    class View:
+        pass
+
+    class Write:
+        pass
+
+
 def _fresh_evidence() -> dict:
     return {"evidence_url": "", "submission_time": 0, "result": "", "evaluated": False}
 
@@ -453,8 +462,7 @@ Respond in JSON:
         escrow = int(c["sla_amount"])
         c["status"] = "SettledReleased"
         self._put(case_id, c)
-        provider = Address(c["provider"])
-        provider.payable(escrow)
+        _Recipient(Address(c["provider"])).emit_transfer(value=u256(escrow))
 
     @gl.public.write
     def penalize(self, case_id: str) -> None:
@@ -468,8 +476,7 @@ Respond in JSON:
         escrow = int(c["sla_amount"])
         c["status"] = "SettledPenalized"
         self._put(case_id, c)
-        consumer = Address(c["consumer"])
-        consumer.payable(escrow)
+        _Recipient(Address(c["consumer"])).emit_transfer(value=u256(escrow))
 
     # ------------------------------------------------------------------
     # Dispute: same predicate, counter-evidence, bounded outcome.
@@ -525,13 +532,11 @@ Respond in JSON:
             c["last_decision"] = "Release"
             c["status"] = "SettledReleased"
             self._put(case_id, c)
-            provider = Address(c["provider"])
-            provider.payable(escrow)
+            _Recipient(Address(c["provider"])).emit_transfer(value=u256(escrow))
         else:
             c["dispute"]["decision"] = "Refund"
             c["last_decision"] = "Refund"
             c["status"] = "SettledRefunded"
             self._put(case_id, c)
-            consumer = Address(c["consumer"])
-            consumer.payable(escrow)
+            _Recipient(Address(c["consumer"])).emit_transfer(value=u256(escrow))
         return c["dispute"]["decision"]
