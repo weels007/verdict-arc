@@ -431,14 +431,11 @@ Respond in JSON:
 
         if outcome == "Satisfied":
             c["last_decision"] = "Release"
-            c["status"] = "DecisionPending"
-            self._put(case_id, c)
-            return "Release"
-        # NotSatisfied / Malformed: bounded dispute path. Funds stay locked.
-        c["last_decision"] = "Failed"
-        c["status"] = "SettledDisputed"
+        else:
+            c["last_decision"] = "Failed"
+        c["status"] = "DecisionPending"
         self._put(case_id, c)
-        return "Failed"
+        return c["last_decision"]
 
     # ------------------------------------------------------------------
     # Settlement
@@ -449,16 +446,30 @@ Respond in JSON:
         c = self._get(case_id)
         if c["status"] != "DecisionPending":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} release requires DecisionPending")
+        if c["last_decision"] != "Release":
+            raise gl.vm.UserError(
+                f"{ERROR_EXPECTED} verdict is '{c['last_decision']}' — only Release allows release"
+            )
+        escrow = int(c["sla_amount"])
         c["status"] = "SettledReleased"
         self._put(case_id, c)
+        provider = Address(c["provider"])
+        provider.payable(escrow)
 
     @gl.public.write
     def penalize(self, case_id: str) -> None:
         c = self._get(case_id)
         if c["status"] != "DecisionPending":
             raise gl.vm.UserError(f"{ERROR_EXPECTED} penalize requires DecisionPending")
+        if c["last_decision"] != "Failed":
+            raise gl.vm.UserError(
+                f"{ERROR_EXPECTED} verdict is '{c['last_decision']}' — only Failed allows penalize"
+            )
+        escrow = int(c["sla_amount"])
         c["status"] = "SettledPenalized"
         self._put(case_id, c)
+        consumer = Address(c["consumer"])
+        consumer.payable(escrow)
 
     # ------------------------------------------------------------------
     # Dispute: same predicate, counter-evidence, bounded outcome.
@@ -467,8 +478,10 @@ Respond in JSON:
     @gl.public.write
     def submit_dispute(self, case_id: str, reason_code: str, counter_evidence_url: str) -> None:
         c = self._get(case_id)
-        if c["status"] != "SettledDisputed":
-            raise gl.vm.UserError(f"{ERROR_EXPECTED} dispute requires SettledDisputed")
+        if c["status"] != "DecisionPending":
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} dispute requires DecisionPending with Failed verdict")
+        if c["last_decision"] != "Failed":
+            raise gl.vm.UserError(f"{ERROR_EXPECTED} cannot dispute a Release verdict — use release() instead")
         sender = gl.message.sender_address.as_hex
         if sender != c["provider"] and sender != c["consumer"]:
             raise gl.vm.UserError(f"{ERROR_EXPECTED} only case parties can open a dispute")
@@ -505,18 +518,20 @@ Respond in JSON:
         counter_outcome = _judge_outcome(c, counter)
         c["dispute"]["counter_result"] = counter_outcome
         c["dispute"]["decided"] = True
+        escrow = int(c["sla_amount"])
 
         if counter_outcome == "Satisfied":
             c["dispute"]["decision"] = "Release"
             c["last_decision"] = "Release"
             c["status"] = "SettledReleased"
-        elif c["evidence"]["result"] == "Satisfied":
-            c["dispute"]["decision"] = "Refund"
-            c["last_decision"] = "Penalty"
-            c["status"] = "SettledPenalized"
+            self._put(case_id, c)
+            provider = Address(c["provider"])
+            provider.payable(escrow)
         else:
-            c["dispute"]["decision"] = "Failed"
-            c["last_decision"] = "Failed"
-            c["status"] = "DisputeDecided"
-        self._put(case_id, c)
+            c["dispute"]["decision"] = "Refund"
+            c["last_decision"] = "Refund"
+            c["status"] = "SettledRefunded"
+            self._put(case_id, c)
+            consumer = Address(c["consumer"])
+            consumer.payable(escrow)
         return c["dispute"]["decision"]
