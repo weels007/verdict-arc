@@ -29,7 +29,7 @@ export function loadConfig(): AppConfig {
 
   return {
     endpoint: envEndpoint || "https://studio.genlayer.com/api",
-    contractAddress: envContract || "0x19EE7bd967CF365a8214Ac01f729C0d037eb1852",
+    contractAddress: envContract || "0x95Ff2075f20b638647Fc3417989F1FdC3254b000",
   };
 }
 

@@ -1,0 +1,1 @@
+{"evidence_format":"task_completion_v1","completed_task_count":5,"completion_timestamps":[1700000100,1700000200,1700000300,1700000400,1700000500],"all_tasks_successful":true,"successful_responses":5,"total_responses":5,"observation_window_start":1700000000,"observation_window_end":1700004000}

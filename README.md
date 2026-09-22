@@ -176,7 +176,7 @@ npx tsx scripts/test-all-methods.ts
 
 ```bash
 VITE_GENLAYER_ENDPOINT=https://studio.genlayer.com/api
-VITE_GENLAYER_CONTRACT=0x19EE7bd967CF365a8214Ac01f729C0d037eb1852
+VITE_GENLAYER_CONTRACT=0x95Ff2075f20b638647Fc3417989F1FdC3254b000
 ```
 
 4. Deploy — visitors get a fully configured dashboard
@@ -242,7 +242,7 @@ The frontend reads from `VITE_GENLAYER_*` env vars at build time:
 export function loadConfig(): AppConfig {
   return {
     endpoint: "https://studio.genlayer.com/api",
-    contractAddress: "0x19EE7bd967CF365a8214Ac01f729C0d037eb1852",
+    contractAddress: "0x95Ff2075f20b638647Fc3417989F1FdC3254b000",
   };
 }
 ```
